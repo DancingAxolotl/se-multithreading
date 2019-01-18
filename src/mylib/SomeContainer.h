@@ -16,6 +16,8 @@ public:
     IObject* Query(int objectId);
     void Unregister(int objectId);
 private:
+    void ImplUnregister(int objectId);
+private:
     KeyValueStore<int, IObject*> m_storage;
     std::mutex m_mutex;
 };
@@ -44,7 +46,7 @@ void CSomeContainer<IObject>::Register(int objectId, std::auto_ptr<IObject> obje
 {
     std::unique_lock<std::mutex> lock(m_mutex);
     if (m_storage[objectId] != nullptr) {
-        Unregister(objectId);
+        ImplUnregister(objectId);
     }
     m_storage[objectId] = object.release();
 }
@@ -58,7 +60,14 @@ IObject* CSomeContainer<IObject>::Query(int objectId)
 template<typename IObject>
 void CSomeContainer<IObject>::Unregister(int objectId)
 {
+    std::unique_lock<std::mutex> lock(m_mutex);
+    ImplUnregister(objectId);
+}
+
+template<typename IObject>
+void CSomeContainer<IObject>::ImplUnregister(int objectId)
+{
     IObject* objPtr = m_storage.at(objectId);
-    m_storage.erase(objectId);
     delete objPtr;
+    m_storage.erase(objectId);
 }
