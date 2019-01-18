@@ -2,6 +2,7 @@
 #include <memory>
 #include <map>
 #include <cassert>
+#include <mutex>
 
 template<typename KeyType, typename ValueType>
 using  KeyValueStore = std::map<KeyType, ValueType>;
@@ -16,6 +17,7 @@ public:
     void Unregister(int objectId);
 private:
     KeyValueStore<int, IObject*> m_storage;
+    std::mutex m_mutex;
 };
 
 template<typename IObject>
@@ -40,6 +42,7 @@ CSomeContainer<IObject>::~CSomeContainer()
 template<typename IObject>
 void CSomeContainer<IObject>::Register(int objectId, std::auto_ptr<IObject> object)
 {
+    std::unique_lock<std::mutex> lock(m_mutex);
     if (m_storage[objectId] != nullptr) {
         Unregister(objectId);
     }
