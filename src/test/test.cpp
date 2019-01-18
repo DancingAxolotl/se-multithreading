@@ -15,6 +15,7 @@
  * - unregisters objects
  *  1 registred object
  *  2 unregistred object
+ *
 */
 using IObject = void;
 
@@ -44,11 +45,19 @@ public:
     MOCK_METHOD1(Remove, void(int));
 };
 
+TEST(SomeContainer, UsesStorageFactory) {
+    MockKeyValueStoreFactory mockStorageProvider;
+    MockKeyValueStore mockStore;
+    EXPECT_CALL(mockStorageProvider, CreateStore()).WillOnce(::testing::Return(&mockStore));
+    CSomeContainer container(&mockStorageProvider);
+}
+
 TEST(SomeContainer, RegistersObjects) {
     MockKeyValueStoreFactory mockStorageProvider;
     MockKeyValueStore mockStore;
     EXPECT_CALL(mockStorageProvider, CreateStore()).WillOnce(::testing::Return(&mockStore));
     CSomeContainer container(&mockStorageProvider);
+
     int someIndex = 0;
     std::auto_ptr<IObject> someObject(new int(5));
     EXPECT_CALL(mockStore, Insert(someIndex, someObject.get()));
