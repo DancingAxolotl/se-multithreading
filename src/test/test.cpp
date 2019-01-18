@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <memory>
 
 /*
  * IKeyValueStore
@@ -17,7 +18,7 @@
  *  2 unregistred object
  *
 */
-using IObject = void;
+using IObject = int;
 
 class IKeyValueStore {
 public:
@@ -54,8 +55,13 @@ public:
             m_storage.reset(storageProvider->CreateStore());
         }
     }
+
+    void Register(int objectId, std::auto_ptr<IObject> object)
+    {
+        m_storage->Insert(objectId, object.release());
+    }
 private:
-    std::auto_ptr<IKeyValueStore> m_storage;
+    std::unique_ptr<IKeyValueStore> m_storage;
 };
 
 TEST(SomeContainer, UsesStorageFactory) {
@@ -67,13 +73,12 @@ TEST(SomeContainer, UsesStorageFactory) {
 
 TEST(SomeContainer, RegistersObjects) {
     MockKeyValueStoreFactory mockStorageProvider;
-    MockKeyValueStore mockStore;
-    EXPECT_CALL(mockStorageProvider, CreateStore()).WillOnce(::testing::Return(&mockStore));
+    MockKeyValueStore* mockStore = new MockKeyValueStore();
+    EXPECT_CALL(mockStorageProvider, CreateStore()).WillOnce(::testing::Return(mockStore));
     CSomeContainer container(&mockStorageProvider);
 
     int someIndex = 0;
     std::auto_ptr<IObject> someObject(new int(5));
-    EXPECT_CALL(mockStore, Insert(someIndex, someObject.get()));
+    EXPECT_CALL(*mockStore, Insert(someIndex, someObject.get()));
     container.Register(someIndex, someObject);
 }
-
