@@ -31,7 +31,7 @@ public:
     virtual ~MockIObjectDestructableWithSleep() {
         try {
             Die();
-            std::this_thread::sleep_for(std::chrono::seconds(std::rand() % 10));
+            std::this_thread::sleep_for(std::chrono::seconds(1));
         } catch (const std::exception &) {
 
         }
@@ -88,7 +88,7 @@ void ModifyContainer(CSomeContainer<IObjectDestructable>& container, int index) 
     EXPECT_NO_THROW(container.Register(index, std::auto_ptr<IObjectDestructable>(storedObject)));
 }
 
-TEST(SomeContainer, SynchronizesAccess) {
+TEST(SomeContainer, SynchronizesRegisterAccess) {
     CSomeContainer<IObjectDestructable> container;
     const int threadCount = 5;
     std::thread t[threadCount];
@@ -100,5 +100,31 @@ TEST(SomeContainer, SynchronizesAccess) {
     for (int i = 0; i < threadCount; ++i) {
         t[i].join();
     }
-    EXPECT_NO_THROW(container.Query(someIndex)); //some value should be left at index
+    EXPECT_NO_THROW(container.Query(someIndex)); // some value should be left at index
+}
+
+void ModifyContainerUnregister(CSomeContainer<IObjectDestructable>& container, int index) {
+    try {
+        container.Unregister(index);
+    } catch (const std::out_of_range& ) {
+        // only one call unregisters, other calls should throw so ignore exception
+    }
+}
+
+TEST(SomeContainer, SynchronizesUnregisterAccess) {
+    CSomeContainer<IObjectDestructable> container;
+    const int someIndex = 0;
+    MockIObjectDestructableWithSleep* storedObject = new MockIObjectDestructableWithSleep;
+    EXPECT_CALL(*storedObject, Die()).Times(1);
+    container.Register(someIndex, std::auto_ptr<IObjectDestructable>(storedObject));
+
+    const int threadCount = 5;
+    std::thread t[threadCount];
+    for (int i = 0; i < threadCount; ++i) {
+        t[i] = std::thread(ModifyContainerUnregister, std::ref(container), someIndex);
+    }
+
+    for (int i = 0; i < threadCount; ++i) {
+        t[i].join();
+    }
 }
