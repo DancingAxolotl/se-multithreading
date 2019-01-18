@@ -38,17 +38,30 @@ public:
     MOCK_METHOD0(CreateStore, IKeyValueStore*());
 };
 
-class MockKeyValueStore {
+class MockKeyValueStore : public IKeyValueStore {
 public:
     MOCK_METHOD2(Insert, void(int, IObject*));
     MOCK_METHOD1(Query, IObject*(int));
     MOCK_METHOD1(Remove, void(int));
 };
 
+class CSomeContainer {
+public:
+    CSomeContainer(IKeyValueStoreFactory* storageProvider)
+    {
+        assert(storageProvider != nullptr && "storage provider must be non null");
+        if (storageProvider != nullptr) {
+            m_storage.reset(storageProvider->CreateStore());
+        }
+    }
+private:
+    std::auto_ptr<IKeyValueStore> m_storage;
+};
+
 TEST(SomeContainer, UsesStorageFactory) {
     MockKeyValueStoreFactory mockStorageProvider;
-    MockKeyValueStore mockStore;
-    EXPECT_CALL(mockStorageProvider, CreateStore()).WillOnce(::testing::Return(&mockStore));
+    MockKeyValueStore* mockStore = new MockKeyValueStore();
+    EXPECT_CALL(mockStorageProvider, CreateStore()).WillOnce(::testing::Return(mockStore));
     CSomeContainer container(&mockStorageProvider);
 }
 
@@ -63,3 +76,4 @@ TEST(SomeContainer, RegistersObjects) {
     EXPECT_CALL(mockStore, Insert(someIndex, someObject.get()));
     container.Register(someIndex, someObject);
 }
+
