@@ -30,6 +30,19 @@ public:
     MOCK_METHOD2_T(Insert, void(int, IObject*));
     MOCK_METHOD1_T(Query, IObject*(int));
     MOCK_METHOD1_T(Remove, void(int));
+    MOCK_METHOD0(Die, void());
+    virtual ~MockKeyValueStore() { Die(); }
+};
+
+class IObjectDestructable {
+public:
+    virtual ~IObjectDestructable() {}
+};
+
+class MockIObjectDestructable : public IObjectDestructable {
+public:
+    MOCK_METHOD0(Die, void());
+    virtual ~MockIObjectDestructable() { Die(); }
 };
 
 TEST(SomeContainer, UsesStorageFactory) {
@@ -87,21 +100,18 @@ TEST(SomeContainer, ReleaseObjects) {
     container.Release(someIndex);
 }
 
-/*
-TEST(SomeContainer, DISABLED_DestroysObjectsInStore) {
-    using IObject = IObjectDestructable;
-
-    MockKeyValueStoreFactory mockStorageProvider;
-    MockKeyValueStore* mockStore = new MockKeyValueStore();
+TEST(SomeContainer, DestroysObjectsInStore) {
+    MockKeyValueStoreFactory<IObjectDestructable> mockStorageProvider;
+    MockKeyValueStore<IObjectDestructable>* mockStore = new MockKeyValueStore<IObjectDestructable>();
     EXPECT_CALL(mockStorageProvider, CreateStore()).WillOnce(::testing::Return(mockStore));
-    CSomeContainer container(&mockStorageProvider);
+    CSomeContainer<IObjectDestructable>* container = new CSomeContainer<IObjectDestructable>(&mockStorageProvider);
 
     int someIndex = 0;
-    int expectedValue = 5;
-    MockIObject* storedObject = new MockIObject;
-    std::auto_ptr<IObject> someObject(storedObject);
+    MockIObjectDestructable* storedObject = new MockIObjectDestructable;
+    std::auto_ptr<IObjectDestructable> someObject(storedObject);
     EXPECT_CALL(*mockStore, Insert(someIndex, someObject.get()));
-    container.Register(someIndex, someObject);
+    container->Register(someIndex, someObject);
     EXPECT_CALL(*storedObject, Die());
+    EXPECT_CALL(*mockStore, Die());
+    delete container;
 }
-*/
