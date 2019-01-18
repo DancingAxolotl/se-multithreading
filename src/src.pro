@@ -2,4 +2,5 @@ TEMPLATE = subdirs
 
 SUBDIRS += \
     demo \
-    test
+    test \
+    lib
