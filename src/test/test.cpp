@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <thread>
 #include "SomeContainer.h"
 
 /*
@@ -63,4 +64,23 @@ TEST(SomeContainer, ReplaceRegistredObject) {
 
     IObjectDestructable* secondObject = RegisterDestructableObject(container, someIndex);
     EXPECT_EQ(secondObject, container.Query(someIndex));
+}
+
+void ModifyContainer(CSomeContainer<int> container, int value, int index) {
+    EXPECT_NO_THROW(container.Register(index, std::auto_ptr<int>(new int(value))));
+}
+
+TEST(SomeContainer, SynchronizesAccess) {
+    CSomeContainer<int> container;
+    const int threadCount = 500;
+    std::thread t[threadCount];
+    const int someIndex = 0;
+    for (int i = 0; i < threadCount; ++i) {
+        t[i] = std::thread(ModifyContainer, container, i, someIndex);
+    }
+
+    for (int i = 0; i < threadCount; ++i) {
+        t[i].join();
+    }
+    EXPECT_NO_THROW(container.Query(someIndex));
 }
