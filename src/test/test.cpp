@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#include <SomeContainer.h>
+#include "SomeContainer.h"
 
 /*
  * IKeyValueStore
@@ -18,47 +18,49 @@
  *  2 unregistred object
 */
 
-class MockKeyValueStoreFactory : public IKeyValueStoreFactory {
+template<typename IObject>
+class MockKeyValueStoreFactory : public IKeyValueStoreFactory<IObject> {
 public:
-    MOCK_METHOD0(CreateStore, IKeyValueStore*());
+    MOCK_METHOD0_T(CreateStore, IKeyValueStore<IObject>*());
 };
 
-class MockKeyValueStore : public IKeyValueStore {
+template<typename IObject>
+class MockKeyValueStore : public IKeyValueStore<IObject> {
 public:
-    MOCK_METHOD2(Insert, void(int, IObject*));
-    MOCK_METHOD1(Query, IObject*(int));
-    MOCK_METHOD1(Remove, void(int));
+    MOCK_METHOD2_T(Insert, void(int, IObject*));
+    MOCK_METHOD1_T(Query, IObject*(int));
+    MOCK_METHOD1_T(Remove, void(int));
 };
 
 TEST(SomeContainer, UsesStorageFactory) {
-    MockKeyValueStoreFactory mockStorageProvider;
-    MockKeyValueStore* mockStore = new MockKeyValueStore();
+    MockKeyValueStoreFactory<int> mockStorageProvider;
+    MockKeyValueStore<int>* mockStore = new MockKeyValueStore<int>();
     EXPECT_CALL(mockStorageProvider, CreateStore()).WillOnce(::testing::Return(mockStore));
-    CSomeContainer container(&mockStorageProvider);
+    CSomeContainer<int> container(&mockStorageProvider);
 }
 
 TEST(SomeContainer, RegistersObjects) {
-    MockKeyValueStoreFactory mockStorageProvider;
-    MockKeyValueStore* mockStore = new MockKeyValueStore();
+    MockKeyValueStoreFactory<int> mockStorageProvider;
+    MockKeyValueStore<int>* mockStore = new MockKeyValueStore<int>();
     EXPECT_CALL(mockStorageProvider, CreateStore()).WillOnce(::testing::Return(mockStore));
-    CSomeContainer container(&mockStorageProvider);
+    CSomeContainer<int> container(&mockStorageProvider);
 
     int someIndex = 0;
-    std::auto_ptr<IObject> someObject(new int(5));
+    std::auto_ptr<int> someObject(new int(5));
     EXPECT_CALL(*mockStore, Insert(someIndex, someObject.get()));
     container.Register(someIndex, someObject);
 }
 
 TEST(SomeContainer, QueryObjects) {
-    MockKeyValueStoreFactory mockStorageProvider;
-    MockKeyValueStore* mockStore = new MockKeyValueStore();
+    MockKeyValueStoreFactory<int> mockStorageProvider;
+    MockKeyValueStore<int>* mockStore = new MockKeyValueStore<int>();
     EXPECT_CALL(mockStorageProvider, CreateStore()).WillOnce(::testing::Return(mockStore));
-    CSomeContainer container(&mockStorageProvider);
+    CSomeContainer<int> container(&mockStorageProvider);
 
     int someIndex = 0;
     int expectedValue = 5;
-    IObject* storedObject = new int(expectedValue);
-    std::auto_ptr<IObject> someObject(storedObject);
+    int* storedObject = new int(expectedValue);
+    std::auto_ptr<int> someObject(storedObject);
     EXPECT_CALL(*mockStore, Insert(someIndex, someObject.get()));
     container.Register(someIndex, someObject);
 
@@ -68,15 +70,15 @@ TEST(SomeContainer, QueryObjects) {
 }
 
 TEST(SomeContainer, ReleaseObjects) {
-    MockKeyValueStoreFactory mockStorageProvider;
-    MockKeyValueStore* mockStore = new MockKeyValueStore();
+    MockKeyValueStoreFactory<int> mockStorageProvider;
+    MockKeyValueStore<int>* mockStore = new MockKeyValueStore<int>();
     EXPECT_CALL(mockStorageProvider, CreateStore()).WillOnce(::testing::Return(mockStore));
-    CSomeContainer container(&mockStorageProvider);
+    CSomeContainer<int> container(&mockStorageProvider);
 
     int someIndex = 0;
     int expectedValue = 5;
-    IObject* storedObject = new int(expectedValue);
-    std::auto_ptr<IObject> someObject(storedObject);
+    int* storedObject = new int(expectedValue);
+    std::auto_ptr<int> someObject(storedObject);
     EXPECT_CALL(*mockStore, Insert(someIndex, someObject.get()));
     container.Register(someIndex, someObject);
 
@@ -84,3 +86,22 @@ TEST(SomeContainer, ReleaseObjects) {
     EXPECT_CALL(*mockStore, Remove(someIndex));
     container.Release(someIndex);
 }
+
+/*
+TEST(SomeContainer, DISABLED_DestroysObjectsInStore) {
+    using IObject = IObjectDestructable;
+
+    MockKeyValueStoreFactory mockStorageProvider;
+    MockKeyValueStore* mockStore = new MockKeyValueStore();
+    EXPECT_CALL(mockStorageProvider, CreateStore()).WillOnce(::testing::Return(mockStore));
+    CSomeContainer container(&mockStorageProvider);
+
+    int someIndex = 0;
+    int expectedValue = 5;
+    MockIObject* storedObject = new MockIObject;
+    std::auto_ptr<IObject> someObject(storedObject);
+    EXPECT_CALL(*mockStore, Insert(someIndex, someObject.get()));
+    container.Register(someIndex, someObject);
+    EXPECT_CALL(*storedObject, Die());
+}
+*/
