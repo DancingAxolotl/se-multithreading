@@ -60,6 +60,11 @@ public:
     {
         m_storage->Insert(objectId, object.release());
     }
+
+    IObject* Query(int objectId)
+    {
+        return m_storage->Query(objectId);
+    }
 private:
     std::unique_ptr<IKeyValueStore> m_storage;
 };
@@ -81,4 +86,23 @@ TEST(SomeContainer, RegistersObjects) {
     std::auto_ptr<IObject> someObject(new int(5));
     EXPECT_CALL(*mockStore, Insert(someIndex, someObject.get()));
     container.Register(someIndex, someObject);
+}
+
+TEST(SomeContainer, QueryObjects) {
+    MockKeyValueStoreFactory mockStorageProvider;
+    MockKeyValueStore* mockStore = new MockKeyValueStore();
+    EXPECT_CALL(mockStorageProvider, CreateStore()).WillOnce(::testing::Return(mockStore));
+    CSomeContainer container(&mockStorageProvider);
+
+    int someIndex = 0;
+    int expectedValue = 5;
+    IObject* storedObject = new int(expectedValue);
+    std::auto_ptr<IObject> someObject(storedObject);
+    EXPECT_CALL(*mockStore, Insert(someIndex, someObject.get()));
+    container.Register(someIndex, someObject);
+
+    EXPECT_CALL(*mockStore, Query(someIndex)).WillOnce(::testing::Return(storedObject));
+
+    int value = *container.Query(someIndex);
+    EXPECT_EQ(expectedValue, value);
 }
