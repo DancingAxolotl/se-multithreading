@@ -40,6 +40,9 @@ CSomeContainer<IObject>::~CSomeContainer()
 template<typename IObject>
 void CSomeContainer<IObject>::Register(int objectId, std::auto_ptr<IObject> object)
 {
+    if (m_storage[objectId] != nullptr) {
+        Unregister(objectId);
+    }
     m_storage[objectId] = object.release();
 }
 
