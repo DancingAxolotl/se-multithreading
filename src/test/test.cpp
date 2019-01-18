@@ -66,3 +66,19 @@ TEST(SomeContainer, DestroysObjectsInStore) {
     container.Register(someIndex, someObject);
     EXPECT_CALL(*storedObject, Die());
 }
+
+TEST(SomeContainer, ReplaceRegistredObject) {
+    CSomeContainer<IObjectDestructable> container;
+    int someIndex = 0;
+    MockIObjectDestructable* storedObject = new MockIObjectDestructable;
+    EXPECT_CALL(*storedObject, Die());
+    std::auto_ptr<IObjectDestructable> storedObjectPtr(storedObject);
+    container.Register(someIndex, storedObjectPtr);
+    EXPECT_EQ(storedObject, container.Query(someIndex));
+
+    MockIObjectDestructable* secondObject = new MockIObjectDestructable;
+    EXPECT_CALL(*secondObject, Die());
+    std::auto_ptr<IObjectDestructable> secondObjectPtr(secondObject);
+    container.Register(someIndex, secondObjectPtr);
+    EXPECT_EQ(secondObject, container.Query(someIndex));
+}
