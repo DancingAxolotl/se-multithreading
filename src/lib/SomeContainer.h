@@ -22,6 +22,7 @@ public:
     CSomeContainer(IKeyValueStoreFactory* storageProvider);
     void Register(int objectId, std::auto_ptr<IObject> object);
     IObject* Query(int objectId);
+    void Release(int objectId);
 private:
     std::unique_ptr<IKeyValueStore> m_storage;
 };

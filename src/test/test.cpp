@@ -66,3 +66,21 @@ TEST(SomeContainer, QueryObjects) {
 
     EXPECT_EQ(expectedValue, *container.Query(someIndex));
 }
+
+TEST(SomeContainer, ReleaseObjects) {
+    MockKeyValueStoreFactory mockStorageProvider;
+    MockKeyValueStore* mockStore = new MockKeyValueStore();
+    EXPECT_CALL(mockStorageProvider, CreateStore()).WillOnce(::testing::Return(mockStore));
+    CSomeContainer container(&mockStorageProvider);
+
+    int someIndex = 0;
+    int expectedValue = 5;
+    IObject* storedObject = new int(expectedValue);
+    std::auto_ptr<IObject> someObject(storedObject);
+    EXPECT_CALL(*mockStore, Insert(someIndex, someObject.get()));
+    container.Register(someIndex, someObject);
+
+    EXPECT_CALL(*mockStore, Query(someIndex)).WillOnce(::testing::Return(storedObject));
+    EXPECT_CALL(*mockStore, Remove(someIndex));
+    container.Release(someIndex);
+}

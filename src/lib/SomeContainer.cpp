@@ -18,3 +18,10 @@ IObject* CSomeContainer::Query(int objectId)
 {
     return m_storage->Query(objectId);
 }
+
+void CSomeContainer::Release(int objectId)
+{
+    IObject* objPtr = m_storage->Query(objectId);
+    m_storage->Remove(objectId);
+    delete objPtr;
+}
