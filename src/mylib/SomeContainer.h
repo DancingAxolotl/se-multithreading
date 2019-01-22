@@ -8,6 +8,18 @@ template<typename KeyType, typename ValueType>
 using  KeyValueStore = std::map<KeyType, ValueType>;
 
 template<typename IObject>
+class CSomeContainerIterator {
+public:
+    CSomeContainerIterator(const typename KeyValueStore<int, IObject*>::iterator baseIterator) : m_iterator(baseIterator) {}
+    bool operator==(const CSomeContainerIterator<IObject>& right) const {
+        return m_iterator == right.m_iterator;
+    }
+
+private:
+    typename KeyValueStore<int, IObject*>::iterator m_iterator;
+};
+
+template<typename IObject>
 class CSomeContainer {
 public:
     CSomeContainer();
@@ -15,6 +27,8 @@ public:
     void Register(int objectId, std::auto_ptr<IObject> object);
     IObject* Query(int objectId);
     void Unregister(int objectId);
+    CSomeContainerIterator<IObject> Start();
+    CSomeContainerIterator<IObject> End();
 private:
     void ImplUnregister(int objectId);
 private:
@@ -54,6 +68,7 @@ void CSomeContainer<IObject>::Register(int objectId, std::auto_ptr<IObject> obje
 template<typename IObject>
 IObject* CSomeContainer<IObject>::Query(int objectId)
 {
+    std::unique_lock<std::mutex> lock(m_mutex);
     return m_storage.at(objectId);
 }
 
@@ -62,6 +77,18 @@ void CSomeContainer<IObject>::Unregister(int objectId)
 {
     std::unique_lock<std::mutex> lock(m_mutex);
     ImplUnregister(objectId);
+}
+
+template<typename IObject>
+CSomeContainerIterator<IObject> CSomeContainer<IObject>::Start()
+{
+    return CSomeContainerIterator<IObject>(m_storage.begin());
+}
+
+template<typename IObject>
+CSomeContainerIterator<IObject> CSomeContainer<IObject>::End()
+{
+    return CSomeContainerIterator<IObject>(m_storage.end());
 }
 
 template<typename IObject>

@@ -132,6 +132,7 @@ TEST(SomeContainer, SynchronizesUnregisterAccess) {
 
 void QueryContainer(CSomeContainer<IObjectDestructable>& container, int index) {
     IObjectDestructable* item = nullptr;
+    std::this_thread::sleep_for(std::chrono::milliseconds(500)); //wait for other thread to enter the destructor
     EXPECT_NO_THROW(item = container.Query(index));
     std::this_thread::sleep_for(std::chrono::seconds(2));
     if (item != nullptr)
@@ -153,4 +154,11 @@ TEST(SomeContainer, SynchronizesQueryAccess) {
 
     t1.join();
     t2.join();
+}
+
+TEST(SomeContainer, EmptyContainerReturnsIterator) {
+    CSomeContainer<int> container;
+    CSomeContainerIterator<int> start = container.Start();
+    CSomeContainerIterator<int> end = container.End();
+    EXPECT_EQ(start, end);
 }
