@@ -13,6 +13,7 @@
  *  2 unregistred object
  *
  * returns iterator
+ * iterator next returns current value
  * iterator next returns next item
  * iterator end returns true when reached end
  * read/writes from other threads don't block iterator
@@ -161,4 +162,13 @@ TEST(SomeContainer, EmptyContainerReturnsIterator) {
     CSomeContainerIterator<int> start = container.Start();
     CSomeContainerIterator<int> end = container.End();
     EXPECT_EQ(start, end);
+}
+
+TEST(SomeContainerIterator, IteratorReturnsCurrentValue) {
+    CSomeContainer<int> container;
+    int value = 1;
+    container.Register(0, std::auto_ptr<int>(new int(value)));
+
+    CSomeContainerIterator<int> start = container.Start();
+    EXPECT_EQ(**start, value);
 }
