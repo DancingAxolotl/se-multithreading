@@ -11,6 +11,11 @@
  * - unregisters objects
  *  1 registred object
  *  2 unregistred object
+ *
+ * returns iterator
+ * iterator next returns next item
+ * iterator end returns true when reached end
+ * read/writes from other threads don't block iterator
 */
 
 class IObjectDestructable {
@@ -27,6 +32,7 @@ public:
 
 class MockIObjectDestructableWithSleep : public IObjectDestructable {
 public:
+    MOCK_METHOD0(Foo, void());
     MOCK_METHOD0(Die, void());
     virtual ~MockIObjectDestructableWithSleep() {
         try {
@@ -103,11 +109,11 @@ TEST(SomeContainer, SynchronizesRegisterAccess) {
     EXPECT_NO_THROW(container.Query(someIndex)); // some value should be left at index
 }
 
-void ModifyContainerUnregister(CSomeContainer<IObjectDestructable>& container, int index) {
-    try {
-        container.Unregister(index);
-    } catch (const std::out_of_range& ) {
-        // only one call unregisters, other calls should throw so ignore exception
+void ModifyContainerUnregister(CSomeContainer<IObjectDestructable>& container, int index, bool expectThrow) {
+    if (expectThrow) {
+        EXPECT_THROW(container.Unregister(index), std::out_of_range);
+    } else {
+        EXPECT_NO_THROW(container.Unregister(index));
     }
 }
 
@@ -118,13 +124,33 @@ TEST(SomeContainer, SynchronizesUnregisterAccess) {
     EXPECT_CALL(*storedObject, Die()).Times(1);
     container.Register(someIndex, std::auto_ptr<IObjectDestructable>(storedObject));
 
-    const int threadCount = 5;
-    std::thread t[threadCount];
-    for (int i = 0; i < threadCount; ++i) {
-        t[i] = std::thread(ModifyContainerUnregister, std::ref(container), someIndex);
-    }
+    std::thread t1(ModifyContainerUnregister, std::ref(container), someIndex, false);
+    std::thread t2(ModifyContainerUnregister, std::ref(container), someIndex, true);
+    t1.join();
+    t2.join();
+}
 
-    for (int i = 0; i < threadCount; ++i) {
-        t[i].join();
+void QueryContainer(CSomeContainer<IObjectDestructable>& container, int index) {
+    IObjectDestructable* item = nullptr;
+    EXPECT_NO_THROW(item = container.Query(index));
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    if (item != nullptr)
+    {
+        MockIObjectDestructableWithSleep* test = reinterpret_cast<MockIObjectDestructableWithSleep*>(item);
+        EXPECT_NO_THROW(test->Foo()); // will crash if the object was deleted
     }
+}
+
+TEST(SomeContainer, SynchronizesQueryAccess) {
+    CSomeContainer<IObjectDestructable> container;
+    const int someIndex = 0;
+    MockIObjectDestructableWithSleep* storedObject = new MockIObjectDestructableWithSleep;
+    EXPECT_CALL(*storedObject, Die()).Times(1);
+    container.Register(someIndex, std::auto_ptr<IObjectDestructable>(storedObject));
+
+    std::thread t1(ModifyContainer, std::ref(container), someIndex);
+    std::thread t2(QueryContainer, std::ref(container), someIndex);
+
+    t1.join();
+    t2.join();
 }
