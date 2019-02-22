@@ -8,4 +8,5 @@ SOURCES += \
     SomeContainer.cpp
 
 HEADERS += \
-    SomeContainer.h
+    SomeContainer.h \
+    SomeContainerIterator.h

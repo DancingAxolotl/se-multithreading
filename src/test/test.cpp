@@ -15,7 +15,7 @@
  * returns iterator
  * iterator next returns current value
  * iterator next returns next item
- * iterator end returns true when reached end
+ * iterator end returns end when reached end
  * read/writes from other threads don't block iterator
 */
 
@@ -171,4 +171,32 @@ TEST(SomeContainerIterator, IteratorReturnsCurrentValue) {
 
     CSomeContainerIterator<int> start = container.Start();
     EXPECT_EQ(**start, value);
+}
+
+TEST(SomeContainerIterator, IteratorReturnsNextValue) {
+    CSomeContainer<int> container;
+    int first = 1;
+    int second = 2;
+    container.Register(0, std::auto_ptr<int>(new int(first)));
+    container.Register(1, std::auto_ptr<int>(new int(second)));
+
+    CSomeContainerIterator<int> start = container.Start();
+    EXPECT_EQ(**start, first);
+    ++start;
+    EXPECT_EQ(**start, second);
+}
+
+TEST(SomeContainerIterator, IteratorReturnsEndValue) {
+    CSomeContainer<int> container;
+    int first = 1;
+    container.Register(0, std::auto_ptr<int>(new int(first)));
+
+    CSomeContainerIterator<int> start = container.Start();
+    EXPECT_EQ(**start, first);
+    ++start;
+    EXPECT_EQ(start, container.End());
+}
+
+TEST(SomeContainerIterator, ShouldNotBlockAccessToContainer) {
+    
 }

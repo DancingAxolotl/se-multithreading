@@ -3,32 +3,10 @@
 #include <map>
 #include <cassert>
 #include <mutex>
+#include "SomeContainerIterator.h"
 
 template<typename KeyType, typename ValueType>
 using  KeyValueStore = std::map<KeyType, ValueType>;
-
-template<typename IObject>
-class CSomeContainer;
-
-template<typename IObject>
-class CSomeContainerIterator {
-public:
-    CSomeContainerIterator(CSomeContainer<IObject>* baseContainer, const typename KeyValueStore<int, IObject*>::iterator baseIterator)
-        : m_baseContainer(baseContainer)
-        , m_iterator(baseIterator) {}
-
-    bool operator==(const CSomeContainerIterator<IObject>& right) const {
-        return m_iterator == right.m_iterator;
-    }
-
-    IObject* operator*() const {
-        return m_baseContainer->Query(m_iterator->first);
-    }
-
-private:
-    typename KeyValueStore<int, IObject*>::iterator m_iterator;
-    CSomeContainer<IObject>* m_baseContainer;
-};
 
 template<typename IObject>
 class CSomeContainer {
@@ -59,7 +37,9 @@ CSomeContainer<IObject>::~CSomeContainer()
     {
         for (auto it = m_storage.begin(); it != m_storage.end(); ++it)
         {
-            delete it->second;
+            if (it->second != nullptr) {
+                delete it->second;
+            }
         }
     } catch (const std::exception &) {
         //
@@ -105,7 +85,11 @@ CSomeContainerIterator<IObject> CSomeContainer<IObject>::End()
 template<typename IObject>
 void CSomeContainer<IObject>::ImplUnregister(int objectId)
 {
-    IObject* objPtr = m_storage.at(objectId);
-    delete objPtr;
-    m_storage.erase(objectId);
+    try {
+        IObject* objPtr = m_storage.at(objectId);
+        delete objPtr;
+        m_storage.erase(objectId);
+    } catch (const std::out_of_range&) {
+
+    }
 }
